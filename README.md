@@ -57,3 +57,35 @@ TOTAL_VOTES_COLLECTED - all UDT tokens collected by this cell as votes
 
 1. Only 1 Cell of this type can exist in the output except for Minting and Burning the cell itself.
 2. 2 Cells of this type need to be passed as input when Settling the vote.
+
+# Transactions
+
+# Create new vote
+
+Assuming we have 3 voters.
+
+Input:
+1. A cell that's going to be used as a Seed Cell (could be any cell)
+
+Output:
+1. Core Cell
+2. Vote No Cell
+3. Vote Yes Cell
+4. UDT Voter 1 Cell
+5. UDT Voter 2 Cell
+6. UDT Voter 3 Cell
+
+# Vote
+
+Assuming Voter 1 votes for No.
+
+Input:
+
+1. Vote No Cell
+2. UDT Voter 1 Cell
+
+Output:
+
+1. Vote No Cell
+2. UDT Voter 1 Cell if not all tokens were used for voting
+
