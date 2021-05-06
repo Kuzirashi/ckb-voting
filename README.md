@@ -41,7 +41,9 @@ VOTE_RESULT_OPTION_TYPE - Result of the vote, 0 = NO, 1 = YES
 
 ### Type Script:
 
-Args in Type Script should be blake2b256 hash of first Input Cell in transaction. This is so-called type ID pattern. It is generated based on Input Cell Outpoint + Output index of Core Cell: 1 (for NO cell) or 2 (for YES cell).
+Args in Type Script should be blake2b256 hash of first Input Cell in transaction. This is so-called type ID pattern. It is generated based on Input Cell Outpoint + Output index of Core Cell: 0.
+
+Vote Cell args should be exactly the same as Core Cell's args.
 
 ### Data:
 - 1 byte - VOTE_OPTION_TYPE
@@ -54,6 +56,7 @@ TOTAL_VOTES_COLLECTED - all UDT tokens collected by this cell as votes
 
 1. Only 1 Cell of this type can exist in the output except for Minting and Burning the cell itself.
 2. 2 Cells of this type need to be passed as input when Settling the vote.
+3. If Vote Cell is used in conjunction with Core Cell in the same transaction Vote Cell args should be the same as Core Cell args.
 
 # Transactions
 
