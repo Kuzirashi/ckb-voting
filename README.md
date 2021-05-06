@@ -18,14 +18,7 @@ capsule test
 - 2 DAO VOTE CELLS (YES/NO)
 - X UDT CELLS TO ADDRESSES
 
-Voting:
-- USER SENDS HIS UDT CELL AS INPUT
-- AS OUTPUT THERE'S ONE OF VOTE CELLS WITH INCREASED VALUE
-- TOKEN HAS TO BE BURNED IN THIS TRANSACTION
-
-Collection:
-- 2 VOTE CELLS SHOULD BE PASSED AS INPUT
-- ONE OF THE VOTE CELLS NEED TO HAVE 51% OF ALL MINTED TOKENS
+X is the number of voters. The addresses of the voters should be known before creating the vote.
 
 ## DAO CORE CELL
 
@@ -36,9 +29,13 @@ Args in Type Script should be blake2b256 hash of first Input Cell in transaction
 ### Data:
 - 32 bytes - VOTE_TITLE
 - 8 bytes - TOTAL_DISTRIBUTED_TOKENS
+- 1 byte - IS_VOTING_FINISHED
+- 1 byte - VOTE_RESULT_OPTION_TYPE
 
 VOTE_TITLE - Title of the vote
 TOTAL_DISTRIBUTED_TOKENS - Total tokens distributed to all addresses
+IS_VOTING_FINISHED - 0 = NO, 1 = YES
+VOTE_RESULT_OPTION_TYPE - Result of the vote, 0 = NO, 1 = YES
 
 ## DAO VOTE CELL
 
@@ -89,3 +86,14 @@ Output:
 1. Vote No Cell
 2. UDT Voter 1 Cell if not all tokens were used for voting
 
+# Finish voting
+
+ONE OF THE VOTE CELLS NEED TO HAVE 51% OF ALL MINTED TOKENS.
+
+Input:
+1. Core Cell
+2. Vote No Cell
+3. Vote Yes Cell
+
+Output:
+1. Core Cell
