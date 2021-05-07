@@ -1,9 +1,13 @@
 [workspace]
-members = ["tests", "contracts/dao-core"]
+members = [
+  "tests",
+  "contracts/dao-core",
+  "contracts/voting-udt",
+]
 
 [profile.release]
-overflow-checks = true
-opt-level = 's'
-lto = true
 codegen-units = 1
+lto = true
+opt-level = 's'
+overflow-checks = true
 panic = 'abort'

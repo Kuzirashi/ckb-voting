@@ -41,8 +41,6 @@ VOTE_RESULT_OPTION_TYPE - Result of the vote, 0 = NO, 1 = YES
 
 ### Type Script:
 
-Args in Type Script should be blake2b256 hash of first Input Cell in transaction. This is so-called type ID pattern. It is generated based on Input Cell Outpoint + Output index of Core Cell: 0.
-
 Vote Cell args should be exactly the same as Core Cell's args.
 
 ### Data:
@@ -58,9 +56,21 @@ TOTAL_VOTES_COLLECTED - all UDT tokens collected by this cell as votes
 2. 2 Cells of this type need to be passed as input when Settling the vote.
 3. If Vote Cell is used in conjunction with Core Cell in the same transaction Vote Cell args should be the same as Core Cell args.
 
+## Voting Token
+
+Token Type Script is based on SUDT. It is possible to mint, transfer and burn this token. Altough there are no restrictions or minting the token if the Type Script args are different than Core or Vote cells it won't be possible to vote, so only original tokens created in the same transaction as Core and Vote cells are possible to use.
+
+### Type Script
+
+Cell args should be exactly the same as Core Cell's args.
+
+### Data
+
+- amount: uint128
+
 # Transactions
 
-# Create new vote
+## Create new vote
 
 Assuming we have 3 voters.
 
@@ -75,7 +85,9 @@ Output:
 5. UDT Voter 2 Cell
 6. UDT Voter 3 Cell
 
-# Vote
+Voter Cells with UDT are locked with ACP locks for the addresses. 
+
+## Vote
 
 Assuming Voter 1 votes for No.
 
@@ -89,7 +101,7 @@ Output:
 1. Vote No Cell
 2. UDT Voter 1 Cell if not all tokens were used for voting
 
-# Finish voting
+## Finish voting
 
 ONE OF THE VOTE CELLS NEED TO HAVE 51% OF ALL MINTED TOKENS.
 
@@ -100,3 +112,10 @@ Input:
 
 Output:
 1. Core Cell
+
+# Cells
+
+## UDT Voter Cell
+
+Lock Script: Anyone Can Pay
+Type Script: Voting User Defined Token

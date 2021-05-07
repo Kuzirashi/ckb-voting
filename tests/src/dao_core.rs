@@ -98,7 +98,7 @@ fn calculate_instance_id(
 // }
 
 #[test]
-fn test_empty_args() {
+fn test_can_create_vote() {
     // deploy contract
     let mut context = Context::default();
     let contract_bin: Bytes = Loader::default().load_binary("dao-core");
