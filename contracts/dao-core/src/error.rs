@@ -13,11 +13,13 @@ pub enum Error {
     InvalidOutputCellData,
     CounterValueOverflow,
     Unauthorized,
-    InvalidArgsLen,
+    InvalidDataBytesize,
     WitnessLoadFail,
     InvalidInputCellData,
+    InvalidArgsLength,
     LockArgsOtherThanZero,
     InvalidInstanceId,
+    TokenDistributionMismatch
 }
 
 impl From<SysError> for Error {

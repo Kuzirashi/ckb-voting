@@ -14,30 +14,29 @@ capsule test
 
 # Architecture
 
-- 1 DAO CORE CELL
-- 2 DAO VOTE CELLS (YES/NO)
-- X UDT CELLS TO ADDRESSES
+- 1 Core Cell
+- 2 Vote Cells (yes/no)
+- X Voting Token Cells
 
 X is the number of voters. The addresses of the voters should be known before creating the vote.
 
-## DAO CORE CELL
+## Core Cell
 
 ### Type Script:
 
 Args in Type Script should be blake2b256 hash of first Input Cell in transaction. This is so-called type ID pattern. It is generated based on Input Cell Outpoint + Output index of Core Cell: 0.
 
-### Data:
-- 32 bytes - VOTE_TITLE
-- 8 bytes - TOTAL_DISTRIBUTED_TOKENS
-- 1 byte - IS_VOTING_FINISHED
-- 1 byte - VOTE_RESULT_OPTION_TYPE
+### Data
 
-VOTE_TITLE - Title of the vote
-TOTAL_DISTRIBUTED_TOKENS - Total tokens distributed to all addresses
-IS_VOTING_FINISHED - 0 = NO, 1 = YES
-VOTE_RESULT_OPTION_TYPE - Result of the vote, 0 = NO, 1 = YES
+| Bytesize  | Name                     | Description
+| --------- | ------                   | ----
+| 32        | TOKEN_CODE_HASH          | Voting token code hash, hash_type is data
+| 32        | VOTE_TITLE               | Title of the vote
+| 16        | TOTAL_DISTRIBUTED_TOKENS | Total tokens distributed to all addresses
+| 1         | IS_VOTING_FINISHED       | 0 = NO, 1 = YES
+| 1         | VOTE_RESULT_OPTION_TYPE  | Result of the vote, 0 = NO, 1 = YES
 
-## DAO VOTE CELL
+## VOTE CELL
 
 ### Type Script:
 
@@ -60,13 +59,16 @@ TOTAL_VOTES_COLLECTED - all UDT tokens collected by this cell as votes
 
 Token Type Script is based on SUDT. It is possible to mint, transfer and burn this token. Altough there are no restrictions or minting the token if the Type Script args are different than Core or Vote cells it won't be possible to vote, so only original tokens created in the same transaction as Core and Vote cells are possible to use.
 
+Lock Script: Anyone Can Pay
+Type Script: Voting User Defined Token
+
 ### Type Script
 
 Cell args should be exactly the same as Core Cell's args.
 
 ### Data
 
-- amount: uint128
+- amount: uint128 (16 bytes)
 
 # Transactions
 
@@ -112,10 +114,3 @@ Input:
 
 Output:
 1. Core Cell
-
-# Cells
-
-## UDT Voter Cell
-
-Lock Script: Anyone Can Pay
-Type Script: Voting User Defined Token

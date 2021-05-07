@@ -101,6 +101,7 @@ fn calculate_instance_id(
 fn test_can_create_vote() {
     // deploy contract
     let mut context = Context::default();
+    context.set_capture_debug(true);
     let contract_bin: Bytes = Loader::default().load_binary("dao-core");
     let out_point = context.deploy_cell(contract_bin);
 
@@ -146,13 +147,30 @@ fn test_can_create_vote() {
         //     .build(),
     ];
 
-    let mut test_name = String::from("Should Christmas last all year?");
+    let mut output_data: Vec<u8> = [].to_vec();
+    
+    let mut token_code_hash = [0u8; 32].to_vec();
+    output_data.append(&mut token_code_hash);   
+    let mut vote_title = String::from("Should Christmas last all year?");
 
-    while test_name.len() < 32 {
-        test_name += " ";
+    while vote_title.len() < 32 {
+        vote_title += " ";
     }
 
-    let outputs_data = vec![Bytes::from(test_name); 1];
+    output_data.append(&mut Bytes::from(vote_title).to_vec());
+
+    let mut total_distributed_tokens = [0u8; 16].to_vec();
+    output_data.append(&mut total_distributed_tokens);
+
+    let mut is_voting_finished = [0u8; 1].to_vec();
+    output_data.append(&mut is_voting_finished);
+
+    let mut vote_result_option_type = [0u8; 1].to_vec();
+    output_data.append(&mut vote_result_option_type);
+
+    println!("OUTPUT DATA: {:?}", output_data.len());
+
+    let outputs_data = vec![Bytes::from(output_data); 1];
 
     // build transaction
     let tx = TransactionBuilder::default()
@@ -165,6 +183,7 @@ fn test_can_create_vote() {
 
     // run
     let result = context.verify_tx(&tx, MAX_CYCLES).unwrap();
+    println!("DEBUG MESSAGES: {:?}", context.captured_messages());
 
     println!("DAO Core Cell created successfully.");
 

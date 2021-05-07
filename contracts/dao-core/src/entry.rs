@@ -1,11 +1,10 @@
 // Import from `core` instead of from `std` since we are in no-std mode.
-use core::result::Result;
+use core::{ops::Add, result::Result};
 
-use ckb_std::{ckb_types::prelude::*, debug};
-use ckb_std::high_level::load_script;
-use ckb_std::syscalls::load_witness;
 use ckb_std::{ckb_constants::Source, ckb_types::packed::OutPoint, high_level::load_input};
 use ckb_std::{ckb_types::bytes::Bytes, high_level::load_cell_type};
+use ckb_std::{ckb_types::packed::Byte, high_level::load_script};
+use ckb_std::{ckb_types::prelude::*, debug};
 
 // Import CKB syscalls and structures
 // https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
@@ -19,22 +18,26 @@ use crate::error::Error;
 
 // The modes of operation for the script.
 enum Mode {
-    Burn,     // Consume an existing counter cell.
-    Create,   // Create a new counter cell.
-    Transfer, // Transfer (update) a counter cell and increase its value.
+    Burn,
+    Create,
+    Transfer,
 }
 
 // Constants
-const BLAKE2B256_HASH_LEN: usize = 32; // Number of bytes for a Blake2b-256 hash.
-const CKBDL_CONTEXT_SIZE: usize = 64 * 1024;
-const CODE_HASH_NULL: [u8; 32] = [0u8; 32];
-const U128_LEN: usize = 16; // Number of bytes for a 128-bit unsigned integer.
-const INSTANCE_ID_LEN: usize = BLAKE2B256_HASH_LEN; // Number of bytes in the Instance ID field.
-const LOCK_HASH_LEN: usize = BLAKE2B256_HASH_LEN; // Number of bytes for a lock hash. (Blake2b 32 bytes)
-const QUANTITY_LEN: usize = U128_LEN; // Number of bytes in the quantity field.
-const TOKEN_LOGIC_FUNCTION: &[u8] = b"token_logic";
-const TOKEN_LOGIC_LEN: usize = BLAKE2B256_HASH_LEN; // Number of bytes in a Token Logic field.
-const ARGS_LEN: usize = LOCK_HASH_LEN; // Number of bytes required for args. (32 bytes)
+const BLAKE2B256_HASH_BYTESIZE: usize = 32;
+const CODE_HASH_BYTESIZE: usize = 32;
+const U128_BYTESIZE: usize = 16;
+const ARGS_BYTESIZE: usize = BLAKE2B256_HASH_BYTESIZE;
+
+const VOTE_TITLE_BYTESIZE: usize = 32;
+const TOTAL_DISTRIBUTED_TOKENS_BYTESIZE: usize = 16;
+const IS_VOTING_FINISHED_BYTESIZE: usize = 1;
+const VOTE_RESULT_OPTION_TYPE: usize = 1;
+const DATA_LEN: usize = CODE_HASH_BYTESIZE
+    + VOTE_TITLE_BYTESIZE
+    + TOTAL_DISTRIBUTED_TOKENS_BYTESIZE
+    + IS_VOTING_FINISHED_BYTESIZE
+    + VOTE_RESULT_OPTION_TYPE; // Number of bytes required for args. (82 bytes)
 
 // Determines the mode of operation for the currently executing script.
 fn determine_mode() -> Result<Mode, Error> {
@@ -60,8 +63,8 @@ fn determine_mode() -> Result<Mode, Error> {
 fn calculate_instance_id(
     seed_cell_outpoint: &OutPoint,
     output_index: usize,
-) -> [u8; BLAKE2B256_HASH_LEN] {
-    let mut blake2b = Blake2bBuilder::new(BLAKE2B256_HASH_LEN)
+) -> [u8; BLAKE2B256_HASH_BYTESIZE] {
+    let mut blake2b = Blake2bBuilder::new(BLAKE2B256_HASH_BYTESIZE)
         .personal(b"ckb-default-hash")
         .build();
 
@@ -73,7 +76,7 @@ fn calculate_instance_id(
     // debug!("calc index: {:?}", seed_cell_outpoint.index().raw_data());
     // debug!("calc output index: {:?}", (output_index as u32).to_le_bytes());
 
-    let mut hash: [u8; BLAKE2B256_HASH_LEN] = [0; BLAKE2B256_HASH_LEN];
+    let mut hash: [u8; BLAKE2B256_HASH_BYTESIZE] = [0; BLAKE2B256_HASH_BYTESIZE];
     blake2b.finalize(&mut hash);
 
     hash
@@ -103,58 +106,57 @@ fn validate_create() -> Result<(), Error> {
         return Err(Error::InvalidInstanceId);
     }
 
-    //
-    //  First 32 bytes = Vote name
-    //
-    if cell_data.len() != 32 {
+    if cell_data.len() != DATA_LEN {
         debug!("LEN IS: {:?}", cell_data.len());
-        return Err(Error::InvalidOutputCellData);
+        return Err(Error::InvalidDataBytesize);
     }
 
-    // debug!("Calculated Instance ID: {:?}", instance_id);
+    // Token Code Hash
+    let mut buffer = [0u8; 32];
+    buffer.copy_from_slice(&cell_data[0..32]);
+    let token_code_hash = Bytes::from(buffer.to_vec());
 
+    // Vote title
     // let mut buffer = [0u8; 32];
-    // buffer.copy_from_slice(&cell_data[0..32]);
-    // let input_value = u64::from_le_bytes(buffer);
+    // buffer.copy_from_slice(&cell_data[32..64]);
 
-    // strin
+    // Total distributed tokens
+    let mut buffer = [0u8; 16];
+    buffer.copy_from_slice(&cell_data[64..80]);
+    let expected_total_tokens_distributed = u128::from_le_bytes(buffer);
 
-    Ok(())
-}
+    let mut tokens_distributed: u128 = 0;
 
-// Validate a transaction to transfer (update) a counter cell and increase its value.
-fn validate_transfer() -> Result<(), Error> {
-    // Load the input cell data and verify that the length is exactly 8, which is the length of a u64.
-    let input_data = load_cell_data(0, Source::GroupInput)?;
-    if input_data.len() != 8 {
-        return Err(Error::InvalidInputCellData);
+    // Load each cell from the outputs.
+    for (i, cell) in QueryIter::new(load_cell, Source::Output).enumerate() {
+        // Check if there is a type script, and skip to the next cell if there is not.
+        let cell_type_script = &cell.type_();
+
+        if cell_type_script.is_none() {
+            continue;
+        }
+
+        // Convert the scripts to bytes and check if they are the same.
+        let cell_type_script = cell_type_script.to_opt().unwrap();
+        let HASH_TYPE_DATA: Byte = 0.into();
+
+        if cell_type_script.hash_type() == HASH_TYPE_DATA
+            && *cell_type_script.code_hash().as_bytes() == *token_code_hash
+        {
+            let data = load_cell_data(i, Source::Output)?;
+
+            let mut buffer = [0u8; 16];
+            buffer.copy_from_slice(&cell_data[0..16]);
+            let token_amount = u128::from_le_bytes(buffer);
+
+            tokens_distributed.add(token_amount);
+        }
     }
 
-    // Load the output cell data and verify that the length is exactly 8, which is the length of a u64.
-    let output_data = load_cell_data(0, Source::GroupOutput)?;
-    if output_data.len() != 8 {
-        return Err(Error::InvalidOutputCellData);
-    }
+    debug!("Total tokens distributed: {:?}", tokens_distributed);
 
-    // Create a buffer to use for parsing cell data into integers.
-    let mut buffer = [0u8; 8];
-
-    // Convert the input cell data to a u64 value.
-    buffer.copy_from_slice(&input_data[0..8]);
-    let input_value = u64::from_le_bytes(buffer);
-
-    // Convert the output cell data to a u64 value.
-    buffer.copy_from_slice(&output_data[0..8]);
-    let output_value = u64::from_le_bytes(buffer);
-
-    // Check for an overflow scenario.
-    if input_value == u64::MAX {
-        return Err(Error::CounterValueOverflow);
-    }
-
-    // Ensure that the output value is always exactly one more that in the input value.
-    if input_value + 1 != output_value {
-        return Err(Error::InvalidCounterValue);
+    if expected_total_tokens_distributed != tokens_distributed {
+        return Err(Error::TokenDistributionMismatch);
     }
 
     Ok(())
@@ -164,15 +166,14 @@ pub fn main() -> Result<(), Error> {
     let script = load_script()?;
     let args = script.args();
 
-    if args.len() < ARGS_LEN {
-        return Err(Error::InvalidArgsLen);
+    if args.len() < ARGS_BYTESIZE {
+        return Err(Error::InvalidArgsLength);
     }
 
-    // Determine the mode and validate as needed.
     match determine_mode() {
         Ok(Mode::Burn) => return Ok(()),
         Ok(Mode::Create) => validate_create()?,
-        Ok(Mode::Transfer) => validate_transfer()?,
+        Ok(Mode::Transfer) => return Err(Error::InvalidTransactionStructure),
         Err(e) => return Err(e),
     }
 

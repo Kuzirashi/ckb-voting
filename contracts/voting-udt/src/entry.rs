@@ -12,7 +12,6 @@ use ckb_std::high_level::{load_script, load_cell_lock_hash, load_cell_data, Quer
 use crate::error::Error;
 
 // Constants
-const LOCK_HASH_LEN: usize = 32; // Number of bytes for a lock hash. (Blake2b 256-bit 32 bytes)
 const SUDT_DATA_LEN: usize = 16; // SUDT uses a u128, which is 16 bytes.
 const BLAKE2B256_HASH_LEN: usize = 32; // Number of bytes for a Blake2b-256 hash.
 
