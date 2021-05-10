@@ -2,7 +2,7 @@
 members = [
   "tests",
   "contracts/dao-core",
-  "contracts/voting-udt",
+  "contracts/sudt",
 ]
 
 [profile.release]

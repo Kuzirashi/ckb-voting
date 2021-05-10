@@ -1,7 +1,11 @@
 // Import from `core` instead of from `std` since we are in no-std mode.
 use core::{ops::Add, result::Result};
 
-use ckb_std::{ckb_constants::Source, ckb_types::packed::OutPoint, high_level::load_input};
+use ckb_std::{
+    ckb_constants::Source,
+    ckb_types::packed::OutPoint,
+    high_level::{load_cell_type_hash, load_input},
+};
 use ckb_std::{ckb_types::bytes::Bytes, high_level::load_cell_type};
 use ckb_std::{ckb_types::packed::Byte, high_level::load_script};
 use ckb_std::{ckb_types::prelude::*, debug};
@@ -128,28 +132,24 @@ fn validate_create() -> Result<(), Error> {
     let mut tokens_distributed: u128 = 0;
 
     // Load each cell from the outputs.
-    for (i, cell) in QueryIter::new(load_cell, Source::Output).enumerate() {
-        // Check if there is a type script, and skip to the next cell if there is not.
-        let cell_type_script = &cell.type_();
-
-        if cell_type_script.is_none() {
+    for (i, cell_type_hash) in QueryIter::new(load_cell_type_hash, Source::Output).enumerate() {
+        if cell_type_hash.is_none() {
             continue;
         }
 
         // Convert the scripts to bytes and check if they are the same.
-        let cell_type_script = cell_type_script.to_opt().unwrap();
+        let cell_type_hash = cell_type_hash.unwrap();
+
         let HASH_TYPE_DATA: Byte = 0.into();
 
-        if cell_type_script.hash_type() == HASH_TYPE_DATA
-            && *cell_type_script.code_hash().as_bytes() == *token_code_hash
-        {
+        if cell_type_hash == *token_code_hash {
             let data = load_cell_data(i, Source::Output)?;
 
             let mut buffer = [0u8; 16];
-            buffer.copy_from_slice(&cell_data[0..16]);
+            buffer.copy_from_slice(&data[0..16]);
             let token_amount = u128::from_le_bytes(buffer);
-
-            tokens_distributed.add(token_amount);
+            
+            tokens_distributed += token_amount;
         }
     }
 

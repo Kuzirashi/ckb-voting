@@ -10,9 +10,7 @@ pub enum Error
 	Encoding,
 	// Add customized errors here...
 	Amount,
-	ArgsLength,
-	OwnerNotEmpty,
-	InvalidInstanceId
+	ArgsLength
 }
 
 impl From<SysError> for Error

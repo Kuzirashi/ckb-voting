@@ -16,7 +16,7 @@ capsule test
 
 - 1 Core Cell
 - 2 Vote Cells (yes/no)
-- X Voting Token Cells
+- X SUDT Cells
 
 X is the number of voters. The addresses of the voters should be known before creating the vote.
 
@@ -36,7 +36,7 @@ Args in Type Script should be blake2b256 hash of first Input Cell in transaction
 | 1         | IS_VOTING_FINISHED       | 0 = NO, 1 = YES
 | 1         | VOTE_RESULT_OPTION_TYPE  | Result of the vote, 0 = NO, 1 = YES
 
-## VOTE CELL
+## Vote Cell
 
 ### Type Script:
 
@@ -55,16 +55,16 @@ TOTAL_VOTES_COLLECTED - all UDT tokens collected by this cell as votes
 2. 2 Cells of this type need to be passed as input when Settling the vote.
 3. If Vote Cell is used in conjunction with Core Cell in the same transaction Vote Cell args should be the same as Core Cell args.
 
-## Voting Token
+## Simple User Defined Token (SUDT)
 
-Token Type Script is based on SUDT. It is possible to mint, transfer and burn this token. Altough there are no restrictions or minting the token if the Type Script args are different than Core or Vote cells it won't be possible to vote, so only original tokens created in the same transaction as Core and Vote cells are possible to use.
+Token Type Script is SUDT. It is possible to mint, transfer and burn this token. 
 
 Lock Script: Anyone Can Pay
-Type Script: Voting User Defined Token
 
 ### Type Script
 
-Cell args should be exactly the same as Core Cell's args.
+- code_hash: sudt type script
+- args: owner lock script hash
 
 ### Data
 
@@ -83,11 +83,11 @@ Output:
 1. Core Cell
 2. Vote No Cell
 3. Vote Yes Cell
-4. UDT Voter 1 Cell
-5. UDT Voter 2 Cell
-6. UDT Voter 3 Cell
+4. SUDT Voter 1 Cell
+5. SUDT Voter 2 Cell
+6. SUDT Voter 3 Cell
 
-Voter Cells with UDT are locked with ACP locks for the addresses. 
+Voter Cells with SUDT are locked with ACP locks for the addresses. 
 
 ## Vote
 
@@ -96,12 +96,12 @@ Assuming Voter 1 votes for No.
 Input:
 
 1. Vote No Cell
-2. UDT Voter 1 Cell
+2. SUDT Voter 1 Cell
 
 Output:
 
 1. Vote No Cell
-2. UDT Voter 1 Cell if not all tokens were used for voting
+2. SUDT Voter 1 Cell if not all tokens were used for voting
 
 ## Finish voting
 
@@ -114,3 +114,11 @@ Input:
 
 Output:
 1. Core Cell
+
+# Known issues
+
+We're using a Simple User Defined Token standard and we're not restricting how it could be minted. We could do so but we chose not to for the sake of simplicity.
+
+To detect a fraud in this simple application we could scan the chain for the total number of SUDT in circulation and if we see that the number went up for no good reason, we could withdraw from honoring vote result.
+
+We're designing a simple voting system. This would be sufficient for on-chain voting, but off-chain execution. For example, we vote on a new chairman for the committee. The blockchain is evidence of the vote, but the actual handing is done in real life, not attached to the chain at all. In this respect, being able to detect a fraud by organizers is all that is important. However, this type of a system is not sufficient for something like on-chain management of a large sum of cryptocurrency with automatic execution of transfers based on voting. 

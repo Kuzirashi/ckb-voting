@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 #[cfg(test)]
-mod voting_udt;
+mod dao_core;
 
 #[cfg(test)]
-mod dao_core;
+mod sudt;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 

@@ -15,5 +15,5 @@ name = "dao-core"
 template_type = "Rust"
 
 [[contracts]]
-name = "voting-udt"
+name = "sudt"
 template_type = "Rust"

@@ -107,9 +107,13 @@ fn test_can_create_vote() {
 
     // prepare scripts
     let out_point_always_success = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let out_point_sudt = context.deploy_cell(Loader::default().load_binary("sudt"));
+
     let lock_script = context
         .build_script(&out_point_always_success, Default::default())
         .expect("script");
+    let lock_script_hash_owner: [u8; 32] = lock_script.calc_script_hash().unpack();
+    let script_args: Bytes = lock_script_hash_owner.to_vec().into();
 
     let input_out_point = context.create_cell(
         CellOutput::new_builder()
@@ -127,6 +131,13 @@ fn test_can_create_vote() {
         .expect("script");
     let dao_core_type_script_dep = CellDep::new_builder().out_point(out_point).build();
 
+    let sudt_type_script = context
+        .build_script(&out_point_sudt, script_args)
+        .expect("script");
+    let sudt_dep = CellDep::new_builder()
+        .out_point(out_point_sudt.clone())
+        .build();
+
     // prepare cells
 
     // let input_out_point = context.create_cell(CellOutput::new_builder().capacity(100_000_000_000_u64.pack()).lock(lock_script.clone()).build(), Bytes::new());
@@ -141,25 +152,30 @@ fn test_can_create_vote() {
             .capacity(500u64.pack())
             .type_(Some(dao_core_type_script.clone()).pack())
             .build(),
-        // CellOutput::new_builder()
-        //     .capacity(500u64.pack())
-        //     .lock(dao_core_script)
-        //     .build(),
+        CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .type_(Some(sudt_type_script.clone()).pack())
+            .build(),
     ];
 
     let mut output_data: Vec<u8> = [].to_vec();
-    
-    let mut token_code_hash = [0u8; 32].to_vec();
-    output_data.append(&mut token_code_hash);   
+
+    let mut token_code_hash = sudt_type_script.calc_script_hash().as_bytes().to_vec();
+
+    // let mut token_code_hash = [0u8; 32].to_vec();
+    output_data.append(&mut token_code_hash);
     let mut vote_title = String::from("Should Christmas last all year?");
 
     while vote_title.len() < 32 {
         vote_title += " ";
     }
 
+    let tokens_to_distribute = 9_000u128;
+
     output_data.append(&mut Bytes::from(vote_title).to_vec());
 
-    let mut total_distributed_tokens = [0u8; 16].to_vec();
+    let mut total_distributed_tokens = tokens_to_distribute.to_le_bytes().to_vec();
     output_data.append(&mut total_distributed_tokens);
 
     let mut is_voting_finished = [0u8; 1].to_vec();
@@ -168,9 +184,11 @@ fn test_can_create_vote() {
     let mut vote_result_option_type = [0u8; 1].to_vec();
     output_data.append(&mut vote_result_option_type);
 
-    println!("OUTPUT DATA: {:?}", output_data.len());
+    let sudt_data = tokens_to_distribute.to_le_bytes().to_vec();
 
-    let outputs_data = vec![Bytes::from(output_data); 1];
+    let outputs_data = vec![Bytes::from(output_data), Bytes::from(sudt_data)];
+
+    println!("OUTPUTS DATA: {:?}", outputs_data);
 
     // build transaction
     let tx = TransactionBuilder::default()

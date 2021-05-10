@@ -1,5 +1,5 @@
 [package]
-name = "voting-udt"
+name = "sudt"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,4 +7,3 @@ edition = "2018"
 
 [dependencies]
 ckb-std = "0.7.1"
-blake2b-ref = "0.2.0"
