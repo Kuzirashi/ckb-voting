@@ -171,7 +171,7 @@ fn test_can_create_vote() {
         vote_title += " ";
     }
 
-    let tokens_to_distribute = 9_000u128;
+    let tokens_to_distribute = 10u128;
 
     output_data.append(&mut Bytes::from(vote_title).to_vec());
 

@@ -74,6 +74,8 @@ Lock Script: Anyone Can Pay
 
 ## Create new vote
 
+[Check "test_can_create_vote" in dao_core.rs.](tests/src/dao_core.rs)
+
 Assuming we have 3 voters.
 
 Input:
